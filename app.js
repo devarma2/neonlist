@@ -237,12 +237,14 @@ class ListApp {
 
   async shortenURL(longUrl) {
     try {
-      // Using is.gd API (free, no API key required) as primary
-      const response = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(longUrl)}`);
-
-      if (response.ok) {
-        const shortUrl = await response.text();
-        return shortUrl;
+      // Using is.gd API via JSONP to avoid CORS
+      try {
+        const response = await this.jsonp(`https://is.gd/create.php?format=json&url=${encodeURIComponent(longUrl)}`);
+        if (response && response.shorturl) {
+          return response.shorturl;
+        }
+      } catch (e) {
+        console.warn('is.gd JSONP failed, falling back to TinyURL', e);
       }
 
       // Fallback to TinyURL if is.gd fails
@@ -258,6 +260,28 @@ class ListApp {
       console.error('Error shortening URL:', error);
       return null; // Return null to use original URL
     }
+  }
+
+  jsonp(url) {
+    return new Promise((resolve, reject) => {
+      const callbackName = 'jsonp_' + Math.round(100000 * Math.random());
+      const script = document.createElement('script');
+
+      window[callbackName] = (data) => {
+        delete window[callbackName];
+        document.body.removeChild(script);
+        resolve(data);
+      };
+
+      script.src = `${url}&callback=${callbackName}`;
+      script.onerror = () => {
+        delete window[callbackName];
+        document.body.removeChild(script);
+        reject(new Error('JSONP request failed'));
+      };
+
+      document.body.appendChild(script);
+    });
   }
 
   fallbackCopyToClipboard(text) {
