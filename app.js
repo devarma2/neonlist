@@ -237,18 +237,19 @@ class ListApp {
 
   async shortenURL(longUrl) {
     try {
-      // Using TinyURL API (free, no API key required)
-      const response = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
+      // Using is.gd API (free, no API key required) as primary
+      const response = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(longUrl)}`);
 
       if (response.ok) {
         const shortUrl = await response.text();
         return shortUrl;
       }
 
-      // Fallback to is.gd if TinyURL fails
-      const isgdResponse = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(longUrl)}`);
-      if (isgdResponse.ok) {
-        const shortUrl = await isgdResponse.text();
+      // Fallback to TinyURL if is.gd fails
+      const tinyUrlResponse = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
+
+      if (tinyUrlResponse.ok) {
+        const shortUrl = await tinyUrlResponse.text();
         return shortUrl;
       }
 
